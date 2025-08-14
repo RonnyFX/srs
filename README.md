@@ -3,23 +3,23 @@ Collection of my scripts for Remnawave project
 
 Курлы для быстрого запуска:
 
-Установка ноды
+Установка remnanode
 ```
 bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/nodeinstall.sh)
 ```
-Удаление входа через рут
+Удаление входа через рут и создание нового с sudo правами на VPS 
 ```
 bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/noroot.sh)
 ```
-Смена порта
+Смена порта VPS
 ```
 bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/port.sh)
 ```
-Апдейтер ноды
+Апдейтер ноды (пулл контейнера)
 ```
 bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/remnanode_updater.sh)
 ```
-Selfsteal
+Настройка Selfsteal'a используя dns записи в Cloudflare
 ```
 bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/sni_setup.sh)
 ```
