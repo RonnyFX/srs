@@ -1,4 +1,4 @@
-# srs
+# Srs (simple remna scripts)
 Collection of my scripts for Remnawave project 
 
 Курлы для быстрого запуска:
