@@ -21,10 +21,7 @@ apt update && apt install -y sudo || { echo "✗ Ошибка при устан�
 echo "➠ Добавляю $username в группу sudo..."
 usermod -aG sudo "$username" || { echo "✗ Ошибка при добавлении в sudo"; exit 1; }
 
-### 🔹 Вариант 1: Sudo БЕЗ пароля (раскомментируйте, если нужно)
-# echo "$username ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-
-### 🔹 Вариант 2: Sudo С паролем (по умолчанию)
+### 🔹Sudo С паролем 
 echo "$username ALL=(ALL:ALL) ALL" >> /etc/sudoers
 
 # Отключение root-логина в SSH
