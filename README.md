@@ -1,7 +1,8 @@
 # srs
-Collection of my scripts for RemaWave project 
+Collection of my scripts for Remnawave project 
 
 Курлы для быстрого запуска:
+
 Установка ноды
 ```
 bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/nodeinstall.sh)
