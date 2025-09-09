@@ -22,7 +22,7 @@ echo "➠ Добавляю $username в группу sudo..."
 usermod -aG sudo "$username" || { echo "✗ Ошибка при добавлении в sudo"; exit 1; }
 
 ### 🔹Sudo С паролем 
-echo "$username ALL=(ALL:ALL) ALL" >> /etc/sudoers
+echo "$username ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 # Отключение root-логина в SSH
 echo "➠ Отключаю вход под root в SSH..."
