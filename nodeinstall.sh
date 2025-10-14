@@ -102,16 +102,16 @@ read -p "Вставьте значение SSL сертификата: " ssl_cer
 ssl_cert="${ssl_cert#SSL_CERT=}"
 
 # Добавляем/обновляем SSL_CERT в .env файле
-if grep -q '^SSL_CERT=' .env 2>/dev/null; then
-	sed -i "s/^SSL_CERT=.*/SSL_CERT=$ssl_cert/" .env
+if sudo grep -q '^SSL_CERT=' .env 2>/dev/null; then
+    sudo sed -i "s/^SSL_CERT=.*/SSL_CERT=$ssl_cert/" .env
 else
-	echo "SSL_CERT=$ssl_cert" >> .env
+    sudo tee -a .env <<< "SSL_CERT=$ssl_cert"
 fi
 
 echo "Переменные настроены"
 
 # Создаём файл docker-compose.yml
-tee docker-compose.yml <<EOF
+sudo tee docker-compose.yml <<EOF
 services:
     remnanode:
         container_name: remnanode
