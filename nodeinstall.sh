@@ -5,7 +5,7 @@ sudo curl -fsSL https://get.docker.com | sh
 echo "Docker установлен"
 
 # Создаём директории
-mkdir -p /opt/remnanode && cd /opt/remnanode
+sudo mkdir -p /opt/remnanode && cd /opt/remnanode
 echo "Директория /opt/remnanode создана"
 
 # Функция для проверки и настройки UFW
@@ -125,8 +125,8 @@ EOF
 echo "Файл docker-compose.yml создан"
 
 # Запускаем ноду
-docker compose up -d
+sudo docker compose up -d
 echo "Нода запущена ✅"
 
 # Проверяем логи
-docker compose logs -f
+sudo docker compose logs -f
