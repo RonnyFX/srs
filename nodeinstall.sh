@@ -59,7 +59,7 @@ open_port() {
 setup_ufw
 
 # Создаём файл .env с правильным форматом
-sudo tee .env <<< "APP_PORT="
+echo "APP_PORT=" > .env
 
 # Запрашиваем порт с проверкой
 while true; do
@@ -102,16 +102,16 @@ read -p "Вставьте значение SSL сертификата: " ssl_cer
 ssl_cert="${ssl_cert#SSL_CERT=}"
 
 # Добавляем/обновляем SSL_CERT в .env файле
-if sudo grep -q '^SSL_CERT=' .env 2>/dev/null; then
-    sudo sed -i "s/^SSL_CERT=.*/SSL_CERT=$ssl_cert/" .env
+if grep -q '^SSL_CERT=' .env 2>/dev/null; then
+    sed -i "s/^SSL_CERT=.*/SSL_CERT=$ssl_cert/" .env
 else
-    sudo tee -a .env <<< "SSL_CERT=$ssl_cert"
+    tee -a .env <<< "SSL_CERT=$ssl_cert"
 fi
 
 echo "Переменные настроены"
 
 # Создаём файл docker-compose.yml
-sudo tee docker-compose.yml <<EOF
+tee docker-compose.yml <<EOF
 services:
     remnanode:
         container_name: remnanode
