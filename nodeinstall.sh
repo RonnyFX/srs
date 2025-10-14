@@ -59,7 +59,7 @@ open_port() {
 setup_ufw
 
 # Создаём файл .env с правильным форматом
-echo "APP_PORT=" > .env
+sudo tee .env <<< "APP_PORT="
 
 # Запрашиваем порт с проверкой
 while true; do
