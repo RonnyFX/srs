@@ -59,7 +59,7 @@ open_port() {
 setup_ufw
 
 # Создаём файл .env с правильным форматом
-echo "APP_PORT=" > .env
+echo "NODE_PORT=" > .env
 
 # Запрашиваем порт с проверкой
 while true; do
@@ -76,7 +76,7 @@ while true; do
     fi
     
     # Обновляем .env файл с выбранным портом
-    sed -i "s/APP_PORT=/APP_PORT=$port/" .env
+    sed -i "s/NODE_PORT=/NODE_PORT=$port/" .env
     
     # Запрашиваем IP для ограничения доступа к порту
     read -p "Введите IP адрес для ограничения доступа к порту $port (или Enter для всех): " ip
@@ -91,21 +91,21 @@ done
 
 # Запрашиваем SSL сертификат с панели
 echo ""
-echo "Теперь нужно получить SSL сертификат с панели управления:"
+echo "Теперь нужно получить SECRET сертификат с панели управления:"
 echo "1. Перейдите в главную панель во вкладку 'Ноды'"
 echo "2. Нажмите кнопку 'Создать новую ноду или выберите существующую'"
-echo "3. Скопируйте значение SSL_CERT (можно с префиксом SSL_CERT= или без него)"
+echo "3. Скопируйте значение SECRET_KEY (можно с префиксом SECRET_KEY= или без него)"
 echo ""
-read -p "Вставьте значение SSL сертификата: " ssl_cert
+read -p "Вставьте значение ключа: " secret_key
 
 # Нормализуем SSL_CERT: убираем возможный префикс
-ssl_cert="${ssl_cert#SSL_CERT=}"
+secret_key="${secret_key#SECRET_KEY=}"
 
 # Добавляем/обновляем SSL_CERT в .env файле
-if grep -q '^SSL_CERT=' .env 2>/dev/null; then
-    sed -i "s/^SSL_CERT=.*/SSL_CERT=$ssl_cert/" .env
+if grep -q '^SECRET_KEY=' .env 2>/dev/null; then
+    sed -i "s/^SECRET_KEY=.*/SECRET_KEY=$secret_key/" .env
 else
-    tee -a .env <<< "SSL_CERT=$ssl_cert"
+    tee -a .env <<< "SECRET_KEY=$secret_key"
 fi
 
 echo "Переменные настроены"
