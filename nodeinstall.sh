@@ -58,9 +58,6 @@ open_port() {
 # Настраиваем UFW
 setup_ufw
 
-# Создаём файл .env с правильным форматом
-echo "NODE_PORT=" > .env
-
 # Запрашиваем порт с проверкой
 while true; do
     read -p "Введите порт для доступа к ноде: " port
@@ -74,9 +71,6 @@ while true; do
         echo "Порт $port уже занят. Выберите другой порт."
         continue
     fi
-    
-    # Обновляем .env файл с выбранным портом
-    sed -i "s/NODE_PORT=/NODE_PORT=$port/" .env
     
     # Запрашиваем IP для ограничения доступа к порту
     read -p "Введите IP адрес для ограничения доступа к порту $port (или Enter для всех): " ip
@@ -101,17 +95,43 @@ read -p "Вставьте значение ключа: " secret_key
 # Нормализуем SSL_CERT: убираем возможный префикс
 secret_key="${secret_key#SECRET_KEY=}"
 
-# Добавляем/обновляем SSL_CERT в .env файле
-if grep -q '^SECRET_KEY=' .env 2>/dev/null; then
-    sed -i "s/^SECRET_KEY=.*/SECRET_KEY=$secret_key/" .env
-else
-    tee -a .env <<< "SECRET_KEY=$secret_key"
-fi
-
 echo "Переменные настроены"
 
+# Настройка логирования
+read -p "Включить ли логирование? (y/n): " enable_logs
+if [[ "$enable_logs" =~ ^[YyДд]$ ]]; then
+    echo "Настройка логирования..."
+    sudo mkdir -p /var/log/remnanode
+    sudo apt update && sudo apt install -y logrotate
+    
+    sudo tee /etc/logrotate.d/remnanode <<EOF
+/var/log/remnanode/*.log {
+      size 50M
+      rotate 5
+      compress
+      missingok
+      notifempty
+      copytruncate
+  }
+EOF
+    sudo logrotate -vf /etc/logrotate.d/remnanode
+    LOG_VOLUME="        volumes:
+            - '/var/log/remnanode:/var/log/remnanode'"
+else
+    LOG_VOLUME=""
+fi
+
+# Настройка net_admin
+read -p "Включить ли net_admin? (y/n): " enable_net_admin
+if [[ "$enable_net_admin" =~ ^[YyДд]$ ]]; then
+    CAP_ADD="        cap_add:
+            - NET_ADMIN"
+else
+    CAP_ADD=""
+fi
+
 # Создаём файл docker-compose.yml
-tee docker-compose.yml <<EOF
+cat <<EOF > docker-compose.yml
 services:
     remnanode:
         container_name: remnanode
@@ -119,8 +139,11 @@ services:
         image: remnawave/node:latest
         restart: always
         network_mode: host
-        env_file:
-            - .env
+        environment:
+            - NODE_PORT=$port
+            - SECRET_KEY="$secret_key"
+$LOG_VOLUME
+$CAP_ADD
 EOF
 echo "Файл docker-compose.yml создан"
 
