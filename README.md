@@ -23,4 +23,7 @@ bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/rem
 ```
 bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/sni_setup.sh)
 ```
-
+Настройка подключения к серверу через SSH ключи
+```
+bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/setup_vps_ssh.sh)
+```
