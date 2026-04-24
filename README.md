@@ -27,7 +27,7 @@ bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/sni
 ```
 bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/setup_vps_ssh.sh)
 ```
-Настройка подключения к серверу через SSH ключи
+Настройка node exporter
 ```
 bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/setup_node_exporter.sh)
 ```
