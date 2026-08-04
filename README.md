@@ -31,3 +31,7 @@ bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/set
 ```
 bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/setup_node_exporter.sh)
 ```
+Настройка окружения под XHTTP 
+```
+bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/xhttp.sh)
+```
