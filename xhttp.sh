@@ -4,6 +4,7 @@
 #
 #   1. Устанавливает свежий nginx из официального репозитория nginx.org
 #      (с поддержкой HTTP/3 QUIC, встроенной в билд начиная с 1.25.5)
+#      и сразу поднимает LimitNOFILE=524288:524288 и worker_connections до 16384
 #   2. Запрашивает домен и выпускает Let's Encrypt сертификат
 #   3. Создаёт конфиг nginx под XHTTP (grpc_pass на unix-socket в /dev/shm)
 #   4. Правит /opt/remnanode/docker-compose.yml, добавляя volumes с /dev/shm
@@ -100,6 +101,39 @@ EOF
     systemctl enable nginx >/dev/null 2>&1 || true
 
     log_ok "Установлен nginx: $(nginx -v 2>&1)"
+}
+
+# Сразу после установки: лимит открытых файлов у процесса nginx и worker_connections.
+tune_nginx_limits() {
+    log_info "Поднимаю LimitNOFILE для nginx до 524288:524288..."
+    mkdir -p /etc/systemd/system/nginx.service.d
+    cat > /etc/systemd/system/nginx.service.d/limits.conf <<'EOF'
+[Service]
+LimitNOFILE=524288:524288
+EOF
+    systemctl daemon-reload
+    log_ok "LimitNOFILE=524288:524288 записан в /etc/systemd/system/nginx.service.d/limits.conf"
+
+    local nginx_conf="/etc/nginx/nginx.conf"
+    if [[ ! -f "$nginx_conf" ]]; then
+        log_err "Не найден ${nginx_conf}, worker_connections не изменён."
+        exit 1
+    fi
+
+    if grep -qE '^[[:space:]]*worker_connections[[:space:]]+16384;' "$nginx_conf"; then
+        log_ok "worker_connections уже 16384 в ${nginx_conf}"
+    elif grep -qE '^[[:space:]]*worker_connections[[:space:]]+[0-9]+;' "$nginx_conf"; then
+        sed -i -E 's/^([[:space:]]*worker_connections[[:space:]]+)[0-9]+;/\116384;/' "$nginx_conf"
+        log_ok "worker_connections установлен в 16384 (${nginx_conf})"
+    else
+        log_err "Не нашёл worker_connections в ${nginx_conf}"
+        exit 1
+    fi
+
+    if systemctl is-active --quiet nginx; then
+        systemctl restart nginx
+        log_ok "nginx перезапущен, лимиты применены."
+    fi
 }
 
 # ------------------------------------------------------------ 2. certificate --
@@ -297,6 +331,7 @@ main() {
 
     log_info "=== Шаг 1/4: установка свежего nginx из nginx.org ==="
     install_fresh_nginx
+    tune_nginx_limits
 
     log_info "=== Шаг 2/4: сертификат Let's Encrypt ==="
     local domain
