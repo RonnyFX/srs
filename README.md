@@ -35,3 +35,7 @@ bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/set
 ```
 bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/xhttp.sh)
 ```
+Изменение контроля перегрузки (bbr)
+```
+bash <(curl -s https://raw.githubusercontent.com/RonnyFX/srs/refs/heads/main/enable-bbr.sh)
+```
