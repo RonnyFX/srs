@@ -218,8 +218,6 @@ server {
         index index.html;
     }
 
-    access_log /var/log/nginx/xhttp_access.log;
-    error_log /var/log/nginx/xhttp_error.log info;
 }
 EOF
 
