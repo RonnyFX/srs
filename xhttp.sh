@@ -6,7 +6,7 @@
 #      (с поддержкой HTTP/3 QUIC, встроенной в билд начиная с 1.25.5)
 #      и сразу поднимает LimitNOFILE=524288:524288 и worker_connections до 16384
 #   2. Запрашивает домен и выпускает Let's Encrypt сертификат
-#   3. Создаёт конфиг nginx под XHTTP (grpc_pass на unix-socket в /dev/shm)
+#   3. Запрашивает location и создаёт конфиг nginx под XHTTP (grpc_pass на unix-socket в /dev/shm)
 #   4. Правит /opt/remnanode/docker-compose.yml, добавляя volumes с /dev/shm
 #   5. По желанию перезапускает контейнер remnanode
 #
@@ -175,14 +175,14 @@ issue_certificate() {
 # --------------------------------------------------------------- 3. nginx.conf --
 
 write_xhttp_config() {
-    local domain="$1" conf_path="/etc/nginx/conf.d/xhttp.conf"
+    local domain="$1" location="$2" conf_path="/etc/nginx/conf.d/xhttp.conf"
 
     mkdir -p /var/www/html
     if [[ ! -f /var/www/html/index.html ]]; then
         echo "<html><body>It works.</body></html>" > /var/www/html/index.html
     fi
 
-    log_info "Пишу конфиг ${conf_path}..."
+    log_info "Пишу конфиг ${conf_path} (location /${location}/)..."
     cat > "$conf_path" <<EOF
 server {
     listen 443 ssl;
@@ -204,7 +204,7 @@ server {
     client_header_timeout 5m;
     keepalive_timeout 5m;
 
-    location /cloudst/ {
+    location /${location}/ {
         client_max_body_size 0;
         grpc_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         client_body_timeout 5m;
@@ -341,7 +341,19 @@ main() {
     issue_certificate "$domain"
 
     log_info "=== Шаг 3/4: конфиг nginx под XHTTP ==="
-    write_xhttp_config "$domain"
+    local location
+    location="$(ask "Введите location для XHTTP" "cloudst")"
+    location="${location#/}"
+    location="${location%/}"
+    if [[ -z "$location" ]]; then
+        log_err "Location не указан, выхожу."
+        exit 1
+    fi
+    if [[ ! "$location" =~ ^[A-Za-z0-9._/-]+$ ]] || [[ "$location" == *..* ]]; then
+        log_err "Location может содержать только буквы, цифры, точку, '_', '-' и '/'. Пример: cloudst"
+        exit 1
+    fi
+    write_xhttp_config "$domain" "$location"
     open_firewall
     reload_nginx
 
@@ -354,7 +366,7 @@ main() {
     fi
 
     echo
-    log_ok "Готово! Домен: ${domain}"
+    log_ok "Готово! Домен: ${domain}, location: /${location}/"
     log_ok "Конфиг nginx: /etc/nginx/conf.d/xhttp.conf"
     log_ok "Unix-socket для XHTTP: /dev/shm/xrxh.socket (должен слушать xray/remnanode внутри контейнера)"
 }
