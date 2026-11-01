@@ -122,11 +122,10 @@ echo -e "${YELLOW}Получаем SSL сертификат...${NC}"
 sudo certbot certonly \
     --webroot \
     -w /var/www/html/site \
-    -d $domain \
-    -d *.$domain \
+    -d "$domain" \
     --non-interactive \
     --agree-tos \
-    --email admin@$domain
+    --email "admin@$domain"
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}SSL сертификат получен успешно!${NC}"
