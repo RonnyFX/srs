@@ -85,19 +85,8 @@ else
 
         # Копируем файлы из подпапки или корня
         if [ -n "$subfolder" ] && [ -d "$temp_dir/$subfolder" ]; then
-            echo -e "${GREEN}Репозиторий склонирован${NC}"
-
-            # Копируем файлы из подпапки или корня
-            if [ -n "$subfolder" ] && [ -d "$temp_dir/$subfolder" ]; then
-                sudo cp -r $temp_dir/$subfolder/* /var/www/html/site/
-            else
-                sudo cp -r $temp_dir/* /var/www/html/site/
-            fi
-
-            sudo chown -R www-data:www-data /var/www/html/site
-            echo -e "${GREEN}Файлы загружены с GitHub${NC}"
+            sudo cp -r $temp_dir/$subfolder/* /var/www/html/site/
         else
-            echo -e "${YELLOW}Копируем файлы из корня репозитория...${NC}"
             sudo cp -r $temp_dir/* /var/www/html/site/
         fi
 
@@ -117,6 +106,34 @@ sudo rm -rf $temp_dir
 echo -e "${YELLOW}Настройка домена:${NC}"
 read -p "Введите ваш домен (например: example.com): " domain
 
+# Временная конфигурация Nginx для получения SSL
+echo -e "${YELLOW}Создаем временную конфигурацию для ACME...${NC}"
+sudo tee /etc/nginx/conf.d/sni-acme.conf > /dev/null <<EOF
+server {
+    listen 80;
+    server_name $domain;
+
+    location /.well-known/acme-challenge/ {
+        allow all;
+        root /var/www/html/site;
+    }
+
+    location / {
+        return 404;
+    }
+}
+EOF
+
+# Проверка и применение временной конфигурации
+echo -e "${YELLOW}Проверяем временную конфигурацию Nginx...${NC}"
+if sudo nginx -t; then
+    sudo systemctl enable nginx
+    sudo systemctl reload nginx
+else
+    echo -e "${RED}Ошибка во временной конфигурации Nginx${NC}"
+    exit 1
+fi
+
 # Получение SSL сертификата
 echo -e "${YELLOW}Получаем SSL сертификат...${NC}"
 sudo certbot certonly \
@@ -134,7 +151,11 @@ else
     exit 1
 fi
 
-# Создание конфигурации Nginx
+# Удаление временной конфигурации
+echo -e "${YELLOW}Удаляем временную конфигурацию ACME...${NC}"
+sudo rm -f /etc/nginx/conf.d/sni-acme.conf
+
+# Создание основной конфигурации Nginx
 echo -e "${YELLOW}Создаем конфигурацию Nginx...${NC}"
 sudo tee /etc/nginx/sites-available/sni.conf > /dev/null <<EOF
 server {
@@ -162,7 +183,7 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
 
-    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
     ssl_session_cache shared:SSL:1m;
     ssl_session_timeout 1d;
     ssl_session_tickets off;
@@ -181,9 +202,9 @@ server {
 }
 EOF
 
-# Включение сайта
+# Включение основной конфигурации сайта
 echo -e "${YELLOW}Включаем сайт...${NC}"
-sudo ln -sf /etc/nginx/sites-available/sni.conf /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/sni.conf /etc/nginx/conf.d/sni.conf
 
 # Проверка конфигурации и перезагрузка
 echo -e "${YELLOW}Проверяем конфигурацию Nginx...${NC}"
