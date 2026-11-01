@@ -12,9 +12,27 @@ echo -e "${GREEN}=== Настройка SNI сайта ===${NC}"
 echo -e "${YELLOW}Обновляем систему...${NC}"
 sudo apt update && sudo apt upgrade -y
 
-# Установка Nginx и Certbot
+# Установка Nginx из официального репозитория nginx.org
 echo -e "${YELLOW}Устанавливаем Nginx и Certbot...${NC}"
-sudo apt install -y nginx certbot python3-certbot-nginx python3-certbot-dns-cloudflare
+sudo apt install -y curl gnupg2 ca-certificates lsb-release ubuntu-keyring certbot python3-certbot-nginx
+
+echo -e "${YELLOW}Добавляем официальный ключ подписи nginx...${NC}"
+curl -fsSL https://nginx.org/keys/nginx_signing.key | sudo gpg --dearmor -o /usr/share/keyrings/nginx-archive-keyring.gpg
+
+codename=$(lsb_release -cs)
+
+echo -e "${YELLOW}Добавляем официальный репозиторий nginx.org...${NC}"
+echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/ubuntu ${codename} nginx" | sudo tee /etc/apt/sources.list.d/nginx.list > /dev/null
+
+sudo tee /etc/apt/preferences.d/99nginx > /dev/null <<'EOF'
+Package: *
+Pin: origin nginx.org
+Pin: release o=nginx
+Pin-Priority: 900
+EOF
+
+sudo apt update
+sudo apt install -y nginx
 
 # Удаление default конфигурации
 echo -e "${YELLOW}Удаляем default конфигурацию Nginx...${NC}"
@@ -42,7 +60,7 @@ if command -v git &> /dev/null; then
     sudo git clone -b $branch $github_repo $temp_dir
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Репозиторий склонирован${NC}"
-        
+
         # Копируем файлы из подпапки или корня
         if [ -n "$subfolder" ] && [ -d "$temp_dir/$subfolder" ]; then
             echo -e "${YELLOW}Копируем файлы из подпапки '$subfolder'...${NC}"
@@ -51,7 +69,7 @@ if command -v git &> /dev/null; then
             echo -e "${YELLOW}Копируем файлы из корня репозитория...${NC}"
             sudo cp -r $temp_dir/* /var/www/html/site/
         fi
-        
+
         sudo chown -R www-data:www-data /var/www/html/site
         echo -e "${GREEN}Файлы загружены с GitHub${NC}"
     else
@@ -64,16 +82,25 @@ else
     sudo git clone -b $branch $github_repo $temp_dir
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Репозиторий склонирован${NC}"
-        
+
         # Копируем файлы из подпапки или корня
         if [ -n "$subfolder" ] && [ -d "$temp_dir/$subfolder" ]; then
-            echo -e "${YELLOW}Копируем файлы из подпапки '$subfolder'...${NC}"
-            sudo cp -r $temp_dir/$subfolder/* /var/www/html/site/
+            echo -e "${GREEN}Репозиторий склонирован${NC}"
+
+            # Копируем файлы из подпапки или корня
+            if [ -n "$subfolder" ] && [ -d "$temp_dir/$subfolder" ]; then
+                sudo cp -r $temp_dir/$subfolder/* /var/www/html/site/
+            else
+                sudo cp -r $temp_dir/* /var/www/html/site/
+            fi
+
+            sudo chown -R www-data:www-data /var/www/html/site
+            echo -e "${GREEN}Файлы загружены с GitHub${NC}"
         else
             echo -e "${YELLOW}Копируем файлы из корня репозитория...${NC}"
             sudo cp -r $temp_dir/* /var/www/html/site/
         fi
-        
+
         sudo chown -R www-data:www-data /var/www/html/site
         echo -e "${GREEN}Файлы загружены с GitHub${NC}"
     else
@@ -86,22 +113,15 @@ fi
 echo -e "${YELLOW}Очищаем временные файлы...${NC}"
 sudo rm -rf $temp_dir
 
-# Настройка Cloudflare DNS
-echo -e "${YELLOW}Настройка Cloudflare DNS:${NC}"
-read -p "Введите ваш Cloudflare API токен: " cf_token
+# Настройка домена
+echo -e "${YELLOW}Настройка домена:${NC}"
 read -p "Введите ваш домен (например: example.com): " domain
-
-# Создание конфигурации Cloudflare
-echo -e "${YELLOW}Создаем конфигурацию Cloudflare...${NC}"
-sudo mkdir -p /etc/letsencrypt
-echo "dns_cloudflare_api_token = $cf_token" | sudo tee /etc/letsencrypt/cloudflare.ini > /dev/null
-sudo chmod 600 /etc/letsencrypt/cloudflare.ini
 
 # Получение SSL сертификата
 echo -e "${YELLOW}Получаем SSL сертификат...${NC}"
 sudo certbot certonly \
-    --dns-cloudflare \
-    --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini \
+    --webroot \
+    -w /var/www/html/site \
     -d $domain \
     -d *.$domain \
     --non-interactive \
@@ -133,7 +153,8 @@ server {
 }
 
 server {
-    listen 127.0.0.1:8443 ssl http2 proxy_protocol;
+    listen 127.0.0.1:8443 ssl proxy_protocol;
+    http2 on;
     server_name $domain;
 
     ssl_certificate /etc/letsencrypt/live/$domain/fullchain.pem;
@@ -142,7 +163,7 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
 
-    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
     ssl_session_cache shared:SSL:1m;
     ssl_session_timeout 1d;
     ssl_session_tickets off;
@@ -172,7 +193,7 @@ if sudo nginx -t; then
     echo -e "${YELLOW}Перезагружаем Nginx...${NC}"
     sudo systemctl restart nginx
     sudo systemctl enable nginx
-    
+
     echo -e "${GREEN}=== SNI сайт настроен успешно! ===${NC}"
     echo -e "${YELLOW}Ваш сайт доступен по адресу: https://$domain${NC}"
     echo -e "${YELLOW}Порт 8443 настроен для проксирования${NC}"
