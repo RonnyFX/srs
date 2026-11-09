@@ -113,9 +113,11 @@ server {
     listen 80;
     server_name $domain;
 
-    location /.well-known/acme-challenge/ {
-        allow all;
+    location ^~ /.well-known/acme-challenge/ {
         root /var/www/html/site;
+        default_type text/plain;
+        allow all;
+        try_files $uri =404;
     }
 
     location / {
@@ -128,11 +130,33 @@ EOF
 echo -e "${YELLOW}Проверяем временную конфигурацию Nginx...${NC}"
 if sudo nginx -t; then
     sudo systemctl enable nginx
-    sudo systemctl reload nginx
+    sudo systemctl restart nginx
 else
     echo -e "${RED}Ошибка во временной конфигурации Nginx${NC}"
     exit 1
 fi
+
+# Проверка ACME challenge
+echo -e "${YELLOW}Проверяем доступность ACME challenge...${NC}"
+
+challenge_dir="/var/www/html/site/.well-known/acme-challenge"
+
+sudo mkdir -p "$challenge_dir"
+echo "acme-test-123" | sudo tee "$challenge_dir/test.txt" > /dev/null
+
+if ! curl -fsS --max-time 10 \
+    --resolve "$domain:80:127.0.0.1" \
+    "http://$domain/.well-known/acme-challenge/test.txt" \
+    | grep -q "acme-test-123"; then
+
+    echo -e "${RED}Ошибка: Nginx не отдает ACME challenge!${NC}"
+    sudo rm -f "$challenge_dir/test.txt"
+    exit 1
+fi
+
+sudo rm -f "$challenge_dir/test.txt"
+
+echo -e "${GREEN}ACME challenge работает корректно!${NC}"
 
 # Получение SSL сертификата
 echo -e "${YELLOW}Получаем SSL сертификат...${NC}"
@@ -162,9 +186,11 @@ server {
     listen 80;
     server_name $domain;
 
-    location /.well-known/acme-challenge/ {
-        allow all;
+    location ^~ /.well-known/acme-challenge/ {
         root /var/www/html/site;
+        default_type text/plain;
+        allow all;
+        try_files $uri =404;
     }
 
     location / {
