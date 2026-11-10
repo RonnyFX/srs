@@ -117,7 +117,7 @@ server {
         root /var/www/html/site;
         default_type text/plain;
         allow all;
-        try_files $uri =404;
+        try_files \$uri =404;
     }
 
     location / {
@@ -190,7 +190,7 @@ server {
         root /var/www/html/site;
         default_type text/plain;
         allow all;
-        try_files $uri =404;
+        try_files \$uri =404;
     }
 
     location / {
