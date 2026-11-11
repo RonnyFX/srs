@@ -185,6 +185,15 @@ write_xhttp_config() {
     log_info "Пишу конфиг ${conf_path} (location /${location}/)..."
     cat > "$conf_path" <<EOF
 server {
+    listen 80;
+    listen [::]:80;
+
+    server_name ${domain};
+
+    return 301 https://\$host\$request_uri;
+}
+
+server {
     listen 443 ssl;
     listen 443 quic reuseport;
     listen [::]:443 ssl;
